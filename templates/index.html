@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>PhishGuard | AI URL Security</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #070b14;
+            --panel: #0d1422;
+            --panel2: #111b2d;
+            --border: #1d2a40;
+            --text: #f5f7fb;
+            --muted: #8b98ad;
+            --blue: #3b82f6;
+            --cyan: #22d3ee;
+            --green: #22c55e;
+            --red: #ef4444;
+            --yellow: #f59e0b;
+        }
+
+        body {
+            font-family: Inter, Arial, sans-serif;
+            background:
+                radial-gradient(circle at 20% 10%, rgba(59,130,246,.12), transparent 30%),
+                radial-gradient(circle at 80% 20%, rgba(34,211,238,.08), transparent 25%),
+                var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .navbar {
+            width: min(1150px, 92%);
+            margin: auto;
+            padding: 25px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 21px;
+            font-weight: 800;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, #2563eb, #06b6d4);
+            box-shadow: 0 0 25px rgba(37,99,235,.3);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green);
+        }
+
+        .hero {
+            width: min(950px, 92%);
+            margin: 55px auto 0;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-flex;
+            padding: 7px 13px;
+            border: 1px solid #243754;
+            background: rgba(17,27,45,.7);
+            border-radius: 100px;
+            color: #9fc4ff;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: clamp(38px, 7vw, 68px);
+            line-height: 1;
+            letter-spacing: -3px;
+            margin-bottom: 20px;
+        }
+
+        .gradient {
+            background: linear-gradient(90deg, #60a5fa, #22d3ee);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .hero p {
+            max-width: 650px;
+            margin: auto;
+            color: var(--muted);
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        .scanner {
+            width: min(850px, 92%);
+            margin: 45px auto 0;
+            background: rgba(13,20,34,.9);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 10px;
+            box-shadow: 0 25px 80px rgba(0,0,0,.35);
+        }
+
+        .input-wrap {
+            display: flex;
+            gap: 10px;
+            padding: 8px;
+        }
+
+        .url-input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid var(--border);
+            background: #080e19;
+            color: white;
+            padding: 18px;
+            border-radius: 14px;
+            outline: none;
+            transition: .2s;
+        }
+
+        .url-input:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+        }
+
+        .scan-btn {
+            border: 0;
+            border-radius: 14px;
+            padding: 0 28px;
+            background: linear-gradient(135deg, #2563eb, #0891b2);
+            color: white;
+            font-weight: 800;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .scan-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(37,99,235,.3);
+        }
+
+        .scan-btn:disabled {
+            opacity: .6;
+            cursor: wait;
+            transform: none;
+        }
+
+        .samples {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 4px 12px 12px;
+            align-items: center;
+        }
+
+        .samples span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .sample {
+            background: #111b2d;
+            border: 1px solid var(--border);
+            color: #aebbd0;
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .sample:hover {
+            border-color: var(--blue);
+            color: white;
+        }
+
+        /* Scanning */
+
+        .scanning {
+            display: none;
+            width: min(850px, 92%);
+            margin: 25px auto;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 25px;
+            text-align: left;
+        }
+
+        .scan-animation {
+            height: 4px;
+            background: #172235;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .scan-animation div {
+            height: 100%;
+            width: 35%;
+            background: linear-gradient(90deg, var(--blue), var(--cyan));
+            animation: scan 1.1s infinite ease-in-out;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(300%); }
+        }
+
+        /* Result */
+
+        .result {
+            display: none;
+            width: min(850px, 92%);
+            margin: 25px auto;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .result-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .result-icon {
+            width: 55px;
+            height: 55px;
+            display: grid;
+            place-items: center;
+            border-radius: 15px;
+            font-size: 25px;
+        }
+
+        .safe-icon {
+            background: rgba(34,197,94,.12);
+            color: var(--green);
+        }
+
+        .bad-icon {
+            background: rgba(239,68,68,.12);
+            color: var(--red);
+        }
+
+        .result h2 {
+            font-size: 25px;
+        }
+
+        .result-sub {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .confidence-box {
+            margin-top: 25px;
+            padding: 20px;
+            background: #080e19;
+            border-radius: 14px;
+        }
+
+        .confidence-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .confidence-value {
+            color: white;
+            font-weight: bold;
+        }
+
+        .confidence-bar {
+            height: 9px;
+            background: #1a2639;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 1s ease;
+            background: linear-gradient(90deg, var(--blue), var(--cyan));
+        }
+
+        .analysis {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .analysis-card {
+            background: #080e19;
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .analysis-card small {
+            color: var(--muted);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .analysis-card strong {
+            word-break: break-all;
+        }
+
+        /* History */
+
+        .history {
+            width: min(850px, 92%);
+            margin: 45px auto 80px;
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .section-title h3 {
+            font-size: 18px;
+        }
+
+        .clear-btn {
+            background: none;
+            border: 0;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .history-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 15px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .history-url {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #c7d2e3;
+        }
+
+        .history-result {
+            font-size: 11px;
+            font-weight: bold;
+            padding: 6px 9px;
+            border-radius: 7px;
+            white-space: nowrap;
+        }
+
+        .history-safe {
+            background: rgba(34,197,94,.1);
+            color: var(--green);
+        }
+
+        .history-bad {
+            background: rgba(239,68,68,.1);
+            color: var(--red);
+        }
+
+        @media(max-width: 650px) {
+
+            .input-wrap {
+                flex-direction: column;
+            }
+
+            .scan-btn {
+                min-height: 52px;
+            }
+
+            .analysis {
+                grid-template-columns: 1fr;
+            }
+
+            .result-header {
+                align-items: flex-start;
+            }
+
+            .status {
+                display: none;
+            }
+
+            h1 {
+                letter-spacing: -2px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="navbar">
+
+    <div class="brand">
+        <div class="brand-icon">🛡️</div>
+        <span>PhishGuard</span>
+    </div>
+
+    <div class="status">
+        <div class="status-dot"></div>
+        AI Scanner Online
+    </div>
+
+</header>
+
+
+<main>
+
+    <section class="hero">
+
+        <div class="badge">
+            ⚡ MACHINE LEARNING SECURITY
+        </div>
+
+        <h1>
+            Detect threats.<br>
+            <span class="gradient">Before they reach you.</span>
+        </h1>
+
+        <p>
+            Analyze suspicious URLs using a machine-learning powered
+            phishing detection system.
+        </p>
+
+    </section>
+
+
+    <!-- Scanner -->
+
+    <section class="scanner">
+
+        <form id="scanForm">
+
+            <div class="input-wrap">
+
+                <input
+                    id="urlInput"
+                    class="url-input"
+                    type="text"
+                    placeholder="Paste a suspicious URL..."
+                    autocomplete="off"
+                    required
+                >
+
+                <button
+                    id="scanButton"
+                    class="scan-btn"
+                    type="submit"
+                >
+                    🔍 Scan URL
+                </button>
+
+            </div>
+
+        </form>
+
+        <div class="samples">
+
+            <span>Try:</span>
+
+            <button
+                class="sample"
+                data-url="https://www.google.com"
+                type="button"
+            >
+                Google
+            </button>
+
+            <button
+                class="sample"
+                data-url="https://www.github.com"
+                type="button"
+            >
+                GitHub
+            </button>
+
+            <button
+                class="sample"
+                data-url="http://paypal-login-security.example.com"
+                type="button"
+            >
+                Suspicious
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- Scanning -->
+
+    <section id="scanning" class="scanning">
+
+        <strong>🔎 Analyzing URL...</strong>
+
+        <div class="scan-animation">
+            <div></div>
+        </div>
+
+    </section>
+
+
+    <!-- Result -->
+
+    <section id="result" class="result">
+
+        <div class="result-header">
+
+            <div class="result-title">
+
+                <div id="resultIcon" class="result-icon"></div>
+
+                <div>
+                    <h2 id="resultTitle"></h2>
+                    <div id="resultSubtitle" class="result-sub"></div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="confidence-box">
+
+            <div class="confidence-top">
+
+                <span>Model confidence</span>
+
+                <span
+                    id="confidenceValue"
+                    class="confidence-value"
+                >
+                    0%
+                </span>
+
+            </div>
+
+            <div class="confidence-bar">
+
+                <div
+                    id="confidenceFill"
+                    class="confidence-fill"
+                ></div>
+
+            </div>
+
+        </div>
+
+
+        <div class="analysis">
+
+            <div class="analysis-card">
+                <small>Protocol</small>
+                <strong id="protocol">-</strong>
+            </div>
+
+            <div class="analysis-card">
+                <small>Domain</small>
+                <strong id="domain">-</strong>
+            </div>
+
+            <div class="analysis-card">
+                <small>URL Length</small>
+                <strong id="urlLength">-</strong>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- History -->
+
+    <section class="history">
+
+        <div class="section-title">
+
+            <h3>Recent scans</h3>
+
+            <button
+                id="clearHistory"
+                class="clear-btn"
+                type="button"
+            >
+                Clear history
+            </button>
+
+        </div>
+
+        <div
+            id="historyList"
+            class="history-list"
+        ></div>
+
+    </section>
+
+</main>
+
+
+<script>
+
+const form = document.getElementById("scanForm");
+const input = document.getElementById("urlInput");
+const button = document.getElementById("scanButton");
+
+const scanning = document.getElementById("scanning");
+const result = document.getElementById("result");
+
+const resultIcon = document.getElementById("resultIcon");
+const resultTitle = document.getElementById("resultTitle");
+const resultSubtitle = document.getElementById("resultSubtitle");
+
+const confidenceValue = document.getElementById("confidenceValue");
+const confidenceFill = document.getElementById("confidenceFill");
+
+const protocol = document.getElementById("protocol");
+const domain = document.getElementById("domain");
+const urlLength = document.getElementById("urlLength");
+
+const historyList = document.getElementById("historyList");
+const clearHistory = document.getElementById("clearHistory");
+
+let history = [];
+
+
+/* ---------------- URL analysis ---------------- */
+
+function analyzeURL(url) {
+
+    let parsed;
+
+    try {
+
+        let normalized = url;
+
+        if (!/^https?:\/\//i.test(normalized)) {
+            normalized = "http://" + normalized;
+        }
+
+        parsed = new URL(normalized);
+
+    } catch {
+
+        return {
+            protocol: "Unknown",
+            domain: "Invalid URL",
+            length: url.length
+        };
+
+    }
+
+    return {
+        protocol: parsed.protocol.replace(":", "").toUpperCase(),
+        domain: parsed.hostname,
+        length: url.length
+    };
+
+}
+
+
+/* ---------------- Scan ---------------- */
+
+form.addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const url = input.value.trim();
+
+    if (!url) return;
+
+
+    button.disabled = true;
+    button.textContent = "Scanning...";
+
+    result.style.display = "none";
+    scanning.style.display = "block";
+
+
+    try {
+
+        const response = await fetch("/predict", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                url: url
+            })
+
+        });
+
+
+        const data = await response.json();
+
+
+        if (!response.ok) {
+            throw new Error(data.error || "Scan failed");
+        }
+
+
+        /* Small delay makes scanning animation visible */
+
+        await new Promise(resolve => setTimeout(resolve, 700));
+
+
+        showResult(data);
+
+        addHistory(data);
+
+
+    } catch (error) {
+
+        result.style.display = "block";
+        scanning.style.display = "none";
+
+        resultIcon.className = "result-icon bad-icon";
+        resultIcon.textContent = "❌";
+
+        resultTitle.textContent = "Scan failed";
+
+        resultSubtitle.textContent = error.message;
+
+    }
+
+
+    scanning.style.display = "none";
+
+    button.disabled = false;
+    button.textContent = "🔍 Scan URL";
+
+});
+
+
+/* ---------------- Result ---------------- */
+
+function showResult(data) {
+
+    result.style.display = "block";
+
+    const info = analyzeURL(data.url);
+
+    protocol.textContent = info.protocol;
+    domain.textContent = info.domain;
+    urlLength.textContent = info.length + " characters";
+
+
+    if (data.safe) {
+
+        resultIcon.className = "result-icon safe-icon";
+        resultIcon.textContent = "✓";
+
+        resultTitle.textContent = "URL appears safe";
+
+        resultSubtitle.textContent =
+            "No phishing classification was detected by the model.";
+
+    } else {
+
+        resultIcon.className = "result-icon bad-icon";
+        resultIcon.textContent = "⚠";
+
+        resultTitle.textContent = "Potential phishing URL";
+
+        resultSubtitle.textContent =
+            "The machine-learning model classified this URL as suspicious.";
+
+    }
+
+
+    const confidence = Number(data.confidence || 0);
+
+    confidenceValue.textContent =
+        confidence.toFixed(2) + "%";
+
+    confidenceFill.style.width =
+        Math.min(100, Math.max(0, confidence)) + "%";
+
+
+    result.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
+
+}
+
+
+/* ---------------- Samples ---------------- */
+
+document.querySelectorAll(".sample").forEach(function(sample) {
+
+    sample.addEventListener("click", function() {
+
+        input.value = sample.dataset.url;
+
+        input.focus();
+
+    });
+
+});
+
+
+/* ---------------- History ---------------- */
+
+function addHistory(data) {
+
+    history.unshift({
+        url: data.url,
+        safe: data.safe,
+        confidence: data.confidence
+    });
+
+    history = history.slice(0, 5);
+
+    renderHistory();
+
+}
+
+
+function renderHistory() {
+
+    historyList.innerHTML = "";
+
+
+    if (history.length === 0) {
+
+        historyList.innerHTML = `
+            <div class="history-item">
+                <span class="history-url">
+                    No scans yet
+                </span>
+            </div>
+        `;
+
+        return;
+    }
+
+
+    history.forEach(function(item) {
+
+        const row = document.createElement("div");
+
+        row.className = "history-item";
+
+
+        const url = document.createElement("span");
+
+        url.className = "history-url";
+
+        url.textContent = item.url;
+
+
+        const status = document.createElement("span");
+
+        status.className =
+            "history-result " +
+            (item.safe
+                ? "history-safe"
+                : "history-bad");
+
+
+        status.textContent =
+            item.safe ? "SAFE" : "PHISHING";
+
+
+        row.appendChild(url);
+        row.appendChild(status);
+
+        historyList.appendChild(row);
+
+    });
+
+}
+
+
+clearHistory.addEventListener("click", function() {
+
+    history = [];
+
+    renderHistory();
+
+});
+
+
+renderHistory();
+
+</script>
+
+</body>
+</html>
